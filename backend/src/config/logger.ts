@@ -1,5 +1,6 @@
 import winston from 'winston';
 
+// Create and export a Winston logger instance
 export const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -12,6 +13,7 @@ export const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console(),
-   // new winston.transports.File({ filename: 'logs/app.log' })
+    // Uncomment the following line to log to a file
+    // new winston.transports.File({ filename: 'logs/app.log' })
   ]
 });

@@ -1,6 +1,9 @@
 import { DataSource } from 'typeorm';
 import { config } from './env';
+import { User } from '../entities/users.entity';
+import { Token } from '../entities/tokens.entity';
 
+// Create and export the TypeORM data source for MySQL
 export const AppDataSource = new DataSource({
   type: "mysql",
   host: config.database.host,
@@ -8,5 +11,5 @@ export const AppDataSource = new DataSource({
   username: config.database.username,
   password: config.database.password,
   database: config.database.dbName,
-  entities: []
+  entities: [User, Token]
 });

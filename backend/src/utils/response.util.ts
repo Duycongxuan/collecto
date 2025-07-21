@@ -2,6 +2,13 @@ import { Response } from 'express';
 import { IResponse, IPagination } from '../interfaces/response.interface';
 
 export class ResponseUtil {
+  /**
+   * Send a success response
+   * @param res Express Response object
+   * @param data Response data
+   * @param message Success message
+   * @param code HTTP status code
+   */
   static success<T> (
     res: Response,
     data: T,
@@ -17,6 +24,13 @@ export class ResponseUtil {
     return res.status(code).json(response);
   }
 
+  /**
+   * Send an error response
+   * @param res Express Response object
+   * @param message Error message
+   * @param code HTTP status code
+   * @param error Error details
+   */
   static error<T> (
     res: Response,
     message: string,
@@ -33,6 +47,15 @@ export class ResponseUtil {
     return res.status(code).json(response);
   }
 
+  /**
+   * Send a paginated response
+   * @param res Express Response object
+   * @param data Array of data
+   * @param page Current page number
+   * @param limit Items per page
+   * @param total Total items
+   * @param message Success message
+   */
   static paginated<T> (
     res: Response,
     data: T[],

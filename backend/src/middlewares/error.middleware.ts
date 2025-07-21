@@ -1,16 +1,24 @@
-import {Request, Response, NextFunction} from 'express';
-import { logger } from '../config/logger';
-import { ResponseUtil } from '../utils/response.util';
+import { AppError } from '../utils/app-error';
+import { Request, Response, NextFunction } from 'express';
 
-export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error(
-    'Error occured: ', {
-      message: err.message,
-      stack: err.stack,
-      url: req.originalUrl,
-      method: req.method
-    }
-  );
+/**
+ * Global error handler middleware
+ * Handles AppError and generic errors
+ */
+export const errorHandler = (err: AppError, req: Request, res: Response, next: NextFunction) => {
+  // Handle custom AppError
+  if (err.name === 'App Error') {
+    return res.status(err.statusCode).json({
+      status: 'error',
+      code: err.statusCode,
+      message: err.message
+    });
+  }
 
-  return ResponseUtil.error(res, 'Internal Server Error', 500, err.message);
+  // Handle generic server errors
+  res.status(500).json({
+    status: 'error',
+    code: 500,
+    message: 'Internal Server Error.'
+  });
 }
