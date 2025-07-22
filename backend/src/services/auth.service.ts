@@ -39,6 +39,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password!, 10);
 
     const newUser = {
+      name: dto.name,
       email: dto.email,
       password: hashedPassword
     };
@@ -60,10 +61,6 @@ export class AuthService {
   login = async (dto: LoginDto): Promise<any> => {
     // Find user by email (with password)
     const user = await this.userRepository.findByEmailWithPassword(dto.email);
-    if (!user) {
-      logger.warn(`Login failed: No user found with email ${dto.email}`);
-      throw new AppError('No user found with this email.', 404);
-    }
 
     // Check user status
     if (user.status === Status.BAN) {
