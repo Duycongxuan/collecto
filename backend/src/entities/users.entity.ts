@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from 'typeorm';
 import { Role, Status } from '../utils/enum';
 import { Token } from './tokens.entity';
+import { Addresses } from './addresses.entity';
 
 @Entity('users')
 export class User {
@@ -36,4 +37,7 @@ export class User {
    */
   @OneToMany(() => Token, token => token.user)
   tokens?: Token[];
+
+  @OneToMany(() => Addresses, address => address.user)
+  address?: Addresses[];
 }
