@@ -35,7 +35,7 @@ export class ResponseUtil {
     res: Response,
     message: string,
     code: number,
-    error: string
+    error?: string
   ):  Response {
     const response: IResponse = {
       status: 'error',
