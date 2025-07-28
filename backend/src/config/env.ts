@@ -27,11 +27,19 @@ interface JwtConfig {
   refreshTokenExpire?: string
 }
 
+// Cloudinary configuration interface
+interface CloudinaryConfig {
+  name?: string;
+  key?: string;
+  secret?: string;
+}
+
 // Main config interface
 interface Config {
   app: AppConfig,
   database: DBConfig,
-  jwt: JwtConfig
+  jwt: JwtConfig,
+  cloudinary: CloudinaryConfig
 }
 
 // Exported configuration object
@@ -52,5 +60,10 @@ export const config: Config = {
     accessTokenExpire: process.env.ACCESS_TOKEN_EXPIRE,
     refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
     refreshTokenExpire: process.env.REFRESH_TOKEN_EXPIRE
+  },
+  cloudinary: {
+    name: process.env.CLOUDINARY_NAME,
+    key: process.env.CLOUDINARY_KEY,
+    secret: process.env.CLOUDINARY_SECRET
   }
 }

@@ -3,7 +3,6 @@ import { config } from './env';
 import { User } from '../entities/users.entity';
 import { Token } from '../entities/tokens.entity';
 import { Addresses } from '../entities/addresses.entity';
-
 // Create and export the TypeORM data source for MySQL
 export const AppDataSource = new DataSource({
   type: "mysql",

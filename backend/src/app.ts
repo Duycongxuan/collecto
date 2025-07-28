@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { errorHandler } from './middlewares/error.middleware';
 import router from './routes/index.route';
+import path from 'path';
 
 const app = express();
 
@@ -27,6 +28,9 @@ app.use(limiter);
 // Body parsing middleware
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
+
+// Serve ảnh tạm
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Main API routes
 app.use('/api/v1', router);

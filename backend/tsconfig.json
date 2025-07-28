@@ -11,9 +11,12 @@
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "resolveJsonModule": true,
+    "resolveJsonModule": false,
     "moduleResolution": "node",
-    "baseUrl": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
