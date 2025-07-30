@@ -11,8 +11,7 @@ const TEMP_UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
 /**
  * Handles temporary file uploads for preview purposes.
- * Files uploaded via this controller are considered temporary and
- * should be moved to permanent storage (e.g., cloud) or cleaned up later.
+ * Files uploaded via this controller are considered temporary and should be moved to permanent storage (e.g., cloud) or cleaned up later.
  */
 export class PreviewController {
 
@@ -29,6 +28,7 @@ export class PreviewController {
 
       const responsePayload = {
         filename: file.filename, // The crucial piece of information for the final save step
+        filepath: file.path,
         previewUrl: this.buildPreviewUrl(req, file.filename),
       };
 
