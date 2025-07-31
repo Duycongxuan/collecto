@@ -5,6 +5,7 @@ import { addressRoute } from './address.route';
 import { previewRoute } from './preview.route';
 import { bannerRoute } from './banner.route';
 import { CategoryRoute } from './category.route';
+import { brandRoute } from './brand.route';
 
 const router = Router();
 
@@ -15,5 +16,6 @@ router.use('/address', addressRoute);
 router.use('/previews', previewRoute);
 router.use('/banners', bannerRoute);
 router.use('/categories', CategoryRoute);
+router.use('/brands', brandRoute);
 
 export default router;
