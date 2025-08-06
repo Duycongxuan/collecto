@@ -1,25 +1,23 @@
-import { RegisterDto } from "../dto/auth/register.dto";
-import { AppError } from "../utils/app-error";
-import { User } from "../entities/users.entity";
-import { UserRepository } from "../repositories/users.repository";
+import { logger } from '@/config/logger';
+import { LoginDto } from '@/dto/auth/login.dto';
+import { RegisterDto } from '@/dto/auth/register.dto';
+import { User } from '@/entities/users.entity';
+import { Status } from '@/enums/enum';
+import { BadRequestException, ConflictException, ForbiddenException } from '@/exceptions/app-error';
+import { TokenRepository } from '@/repositories/token.repository';
+import { UserRepository } from '@/repositories/users.repository';
+import { hashPassword, verifyPassword } from '@/utils/passwordUtils';
+import { generateAccessToken, generateRefreshToken } from '@/utils/token.util';
 import * as bcrypt from 'bcryptjs'
-import { LoginDto } from "../dto/auth/login.dto";
-import { generateAccessToken, generateRefreshToken } from "../utils/token.util";
-import { IPayload } from "../interfaces/payload.interface";
-import { TokenRepository } from "../repositories/token.repository";
-import { logger } from '../config/logger'; // Add logger import
-import { Status } from '../utils/enum'; // Import Status enum
-import { config } from "../config/env";
 import jwt from 'jsonwebtoken';
+import { config } from '@/config/env';
+import { IAuthService } from '@/interfaces/services/auth.interface';
+export class AuthService implements IAuthService{
 
-export class AuthService {
-  private userRepository: UserRepository;
-  private tokenRepository: TokenRepository;
-
-  constructor() {
-    this.userRepository = new UserRepository();
-    this.tokenRepository = new TokenRepository();
-  }
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly tokenRepository: TokenRepository
+  ) {}
 
   /**
    * Register a new user
@@ -29,14 +27,14 @@ export class AuthService {
    */
   register = async (dto: RegisterDto): Promise<User> => {
     // Check if user already exists by email
-    const existingUser = await this.userRepository.findByEmailWithoutPassword(dto.email);
-    if (existingUser) throw new AppError('User already exists with this email.', 409);
+    const existingUser = await this.userRepository.checkEmail(dto.email);
+    if (existingUser) throw new ConflictException('User already exists with this email.');
 
     // Check if password and confirmPassword match
-    if (dto.confirmPassword !== dto.password) throw new AppError('Your confirm password is incorrect.', 400);
+    if (dto.confirmPassword !== dto.password) throw new BadRequestException('Your confirm password is incorrect.');
 
     // Hash the password before saving
-    const hashedPassword = await bcrypt.hash(dto.password!, 10);
+    const hashedPassword = await hashPassword(dto.password);
 
     const newUser = {
       name: dto.name,
@@ -60,34 +58,30 @@ export class AuthService {
    */
   login = async (dto: LoginDto): Promise<any> => {
     // Find user by email (with password)
-    const user = await this.userRepository.findByEmailWithPassword(dto.email);
+    const user = await this.userRepository.findByEmail(dto.email);
 
     // Check user status
     if (user.status === Status.BAN) {
-      logger.warn(`Login failed: User ${user.email} is banned.`);
-      throw new AppError('Your account has been banned. Please contact support.', 403);
+      throw new ForbiddenException('Your account has been banned. Please contact support.');
     }
     if (user.status === Status.DELETED) {
-      logger.warn(`Login failed: User ${user.email} is deleted.`);
-      throw new AppError('Your account has been deleted.', 403);
-    }
-    if (user.status !== Status.ACTIVE) {
-      logger.warn(`Login failed: User ${user.email} is not active.`);
-      throw new AppError('Your account is not active.', 403);
+      throw new ForbiddenException('Your account has been deleted.');
     }
 
     // Compare provided password with hashed password
-    const isPasswordMatch = await bcrypt.compare(dto.password, user.password!);
+    const isPasswordMatch = await verifyPassword(dto.password, user.password!);
     if (!isPasswordMatch) {
-      logger.warn(`Login failed: Incorrect password for user ${user.email}`);
-      throw new AppError('Your password is incorrect. Please enter again.', 400);
+      throw new BadRequestException('Your password is incorrect. Please enter again.');
     }
-
     // Remove sensitive fields before returning user object
-    const { password, ...safeUser } = user;
+    delete user.password;
+
+    //Revoke all old refreshToken in database
+    const message = await this.tokenRepository.revokeAllRefreshTokens(user.id!);
+    logger.info(`${message} with id: ${user.id!}`);
 
     // Prepare JWT payload
-    const payload: IPayload = {
+    const payload = {
       sub: user.id!,
       email: user.email!,
       role: user.role!,
@@ -98,7 +92,7 @@ export class AuthService {
     const refreshToken = generateRefreshToken(payload);
 
     // Hash the refresh token before saving to DB
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 12);
 
     const tokenToSave = {
       userId: user.id!,
@@ -110,7 +104,7 @@ export class AuthService {
     await this.tokenRepository.create(tokenToSave);
     logger.info(`User ${user.email} logged in successfully.`);
     return {
-      user: safeUser, // Only return safe fields
+      user, // Only return safe fields
       accessToken: accessToken,
       refreshToken: refreshToken
     }
@@ -120,25 +114,21 @@ export class AuthService {
    * Logout user by revoking their refresh token
    * @param refreshToken string - refresh token from client (cookie/header)
    */
-  logout = async (refreshToken: string): Promise<void> => {
+  logout = async (userId: number, refreshToken: string): Promise<string> => {
     // Find the token in the database by refresh token value
-    const token = await this.tokenRepository.findByRefreshToken(refreshToken);
+    const token = await this.tokenRepository.findByRefreshToken(userId, refreshToken);
     if (!token) {
-      logger.warn('Logout failed: Refresh token not found or already revoked.');
-      throw new AppError('Invalid or expired refresh token.', 400);
+      throw new BadRequestException('Invalid or expired refresh token.');
     }
+
     if (token.isRevoked) {
       logger.warn('Logout: Token already revoked.');
-      return;
+      return 'Logout: Token already revoked.';
     }
-    // Mark the token as revoked
-    const updatedToken = {
-      ...token,
-      isRevoked: true
-    }
+ 
     // Update token in database
-    await this.tokenRepository.update(updatedToken);
-    logger.info(`Logout successful for userId: ${token.userId}`);
+    const message = await this.tokenRepository.revokedRefreshToken(userId, refreshToken);
+    return `Logout successful for userId: ${token.userId}`;
   }
 
   /**
@@ -147,30 +137,27 @@ export class AuthService {
    * @returns New access token
    * @throws AppError if token is invalid, revoked, or expired
    */
-  resetToken = async (refreshToken: string): Promise<string> => {
+  resetToken = async (userId: number, refreshToken: string): Promise<string> => {
     // Find the token in the database by refresh token value
-    const token = await this.tokenRepository.findByRefreshToken(refreshToken);
+    const token = await this.tokenRepository.findByRefreshToken(userId, refreshToken);
     if (!token) {
-      logger.warn('Logout failed: Refresh token not found or already revoked.');
-      throw new AppError('Invalid or expired refresh token.', 400);
+      throw new BadRequestException('Invalid or expired refresh token.');
     }
     if (token.isRevoked) {
-      logger.warn('Logout: Token already revoked.');
-      throw new AppError('Refresh token has already revoked.', 400);
+      throw new BadRequestException('Refresh token has already revoked.');
     }
     // Check if refresh token is expired
     if (token.expireAt && token.expireAt < new Date()) {
-      logger.warn('Refresh token expired.');
-      throw new AppError('Refresh token has expired.', 400);
+      throw new BadRequestException('Refresh token has expired.');
     }
 
     // Decode and validate the refresh token
     const decoded = jwt.verify(refreshToken, config.jwt.refreshTokenSecret!);
     if (typeof decoded !== "object" || !decoded.sub || !decoded.email || !decoded.role) {
-      throw new AppError("Invalid refresh token payload.", 400);
+      throw new BadRequestException('Invalid refresh token payload.')
     }
     // Prepare payload for new access token
-    const payload: IPayload = {
+    const payload = {
       sub: Number(decoded.sub),
       email: decoded.email,
       role: decoded.role,

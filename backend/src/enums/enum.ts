@@ -14,3 +14,9 @@ export enum Status {
   BAN = 'ban',
   DELETED = 'deleted'
 }
+
+export enum GENDER {
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other'
+}

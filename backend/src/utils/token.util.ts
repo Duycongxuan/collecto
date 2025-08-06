@@ -1,8 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env';
 import { logger } from '../config/logger';
-import { AppError } from './app-error';
-import { IPayload } from '../interfaces/payload.interface';
+import { BadRequestException, InternalException } from '@/exceptions/app-error';
 
 /**
  * Generate a JWT access token for authentication
@@ -10,11 +9,11 @@ import { IPayload } from '../interfaces/payload.interface';
  * @returns JWT access token string
  * @throws AppError if secret is not configured or token generation fails
  */
-export const generateAccessToken = (payload: IPayload): string => {
+export const generateAccessToken = (payload: any): string => {
   try {
     const accessTokenSecret = config.jwt.accessTokenSecret;
     if (!accessTokenSecret) {
-      throw new AppError('JWT access token secret is not configured', 500);
+      throw new InternalException('JWT access token secret is not configured');
     }
 
     const tokenPayload = {
@@ -29,12 +28,9 @@ export const generateAccessToken = (payload: IPayload): string => {
       issuer: 'collecto',
       audience: 'collecto'
     } as any);
-
-    logger.info('Generated access token successfully');
     return token;
   } catch (error) {
-    logger.error('Generated access token failed: ', error);
-    throw new AppError('Generated access token failed', 400);
+    throw new BadRequestException('Generated access token failed');
   }
 }
 
@@ -44,12 +40,12 @@ export const generateAccessToken = (payload: IPayload): string => {
  * @returns JWT refresh token string
  * @throws AppError if secret is not configured or token generation fails
  */
-export const generateRefreshToken = (payload: IPayload): string => {
+export const generateRefreshToken = (payload: any): string => {
   try {
     const refreshTokenSecret = config.jwt.refreshTokenSecret;
     
     if (!refreshTokenSecret) {
-      throw new AppError('JWT refresh token secret is not configured', 500);
+      throw new InternalException('JWT refresh token secret is not configured');
     }
 
     const tokenPayload = {
@@ -65,10 +61,8 @@ export const generateRefreshToken = (payload: IPayload): string => {
       audience: 'collecto'
     } as any);
 
-    logger.info('Generated refresh token successfully');
     return token;
   } catch (error) {
-    logger.error('Generated refresh token failed: ', error);
-    throw new AppError('Generated refresh token failed', 400);
+    throw new BadRequestException('Generated refresh token failed');
   }
 }

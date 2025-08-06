@@ -1,7 +1,6 @@
+import { logger } from '@/config/logger';
 import { Response } from 'express';
-import { IResponse, IPagination } from '../interfaces/response.interface';
-
-export class ResponseUtil {
+export class ApiResponse {
   /**
    * Send a success response
    * @param res Express Response object
@@ -9,44 +8,16 @@ export class ResponseUtil {
    * @param message Success message
    * @param code HTTP status code
    */
-  static success<T> (
-    res: Response,
-    data: T,
-    message: string,
-    code: number
-  ): Response {
-    const response: IResponse = {
+  static success<T> (res: Response, data: T, message: string, code: number): Response {
+    const response = {
       status: 'success',
       code,
       message,
       data
     }
+    logger.info(message);
     return res.status(code).json(response);
   }
-
-  /**
-   * Send an error response
-   * @param res Express Response object
-   * @param message Error message
-   * @param code HTTP status code
-   * @param error Error details
-   */
-  static error<T> (
-    res: Response,
-    message: string,
-    code: number,
-    error?: string
-  ):  Response {
-    const response: IResponse = {
-      status: 'error',
-      code,
-      message,
-      error
-    };
-
-    return res.status(code).json(response);
-  }
-
   /**
    * Send a paginated response
    * @param res Express Response object
@@ -56,15 +27,9 @@ export class ResponseUtil {
    * @param total Total items
    * @param message Success message
    */
-  static paginated<T> (
-    res: Response,
-    data: T[],
-    page: number,
-    limit: number,
-    total: number,
-    message: string
+  static paginated<T> (res: Response, data: T[], page: number, limit: number, total: number, message: string
   ): Response {
-    const response: IPagination<T[]> = {
+    const response= {
       status: 'success',
       code: 200,
       message,
@@ -76,6 +41,7 @@ export class ResponseUtil {
         totalPage: Math.ceil(total / limit),
       }
     }
+    logger.info(message)
     return res.status(200).json(response);
   }
 }

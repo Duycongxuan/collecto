@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from 'typeorm';
-import { Role, Status } from '../utils/enum';
+import { GENDER, Role, Status } from '../enums/enum';
 import { Token } from './tokens.entity';
 import { Addresses } from './addresses.entity';
 
@@ -14,8 +14,20 @@ export class User {
   @Column({ name: 'email', unique: true })
   email?: string;
 
-  @Column({ name: 'password', select: false })
+  @Column({ name: 'phoneNumber', unique: true, nullable: true})
+  phoneNumber?: string;
+
+  @Column({ name: 'dateOfBirth', type: 'date', nullable: true })
+  dateOfBirth?: Date;
+
+  @Column({ name: 'gender', type: 'enum', enum: GENDER, nullable: true })
+  gender?: string;
+
+  @Column({ name: 'password'})
   password?: string;
+
+  @Column({ name: 'rewardPoints', default: 0 })
+  rewardPoint?: number;
 
   @Column({ name: 'role', type: 'enum', enum: Role, default: Role.USER })
   role?: string;
@@ -29,7 +41,7 @@ export class User {
   @UpdateDateColumn({ name: 'updatedAt', type: 'timestamp', nullable: true })
   updatedAt?: Date;
 
-  @DeleteDateColumn({ name: 'deletedAt', type: 'timestamp' })
+  @DeleteDateColumn({ name: 'deletedAt', type: 'timestamp', nullable: true })
   deletedAt?: Date;
 
   /**

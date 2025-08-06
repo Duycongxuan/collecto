@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Backend API with TypeScript, Express, TypeORM",
   "main": "dist/index.js",
- "scripts": {
+  "scripts": {
     "dev": "nodemon -r tsconfig-paths/register src/index.ts",
     "build": "tsc",
     "start": "node -r tsconfig-paths/register dist/index.js",
@@ -26,6 +26,7 @@
     "mysql2": "^3.6.0",
     "reflect-metadata": "^0.2.2",
     "typeorm": "^0.3.17",
+    "typeorm-extension": "^3.7.1",
     "winston": "^3.10.0",
     "winston-daily-rotate-file": "^4.7.1"
   },

@@ -4,8 +4,8 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { errorHandler } from './middlewares/error.middleware';
-import router from './routes/index.route';
 import path from 'path';
+import { ApiRoutes } from './routes/api.route';
 
 const app = express();
 
@@ -33,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Main API routes
-app.use('/api/v1', router);
+app.use('/api/v1', new ApiRoutes().getRoutes());
 
 // Health check endpoint
 app.get('/status', (req, res) => {

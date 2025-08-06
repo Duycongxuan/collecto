@@ -1,5 +1,6 @@
-import { Column, CreateDateColumn, DeleteDateColumn, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
+@Entity('brands')
 export class Brand {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -10,10 +11,10 @@ export class Brand {
   @Column({ name: 'description', nullable: true })
   description?: string;
 
-  @Column({ name: 'logoUrl', type: 'text' })
+  @Column({ name: 'logoUrl', type: 'text', nullable: true })
   logoUrl?: string;
 
-  @Column({ name: 'publicId', type: 'text' })
+  @Column({ name: 'publicId', type: 'text', nullable: true })
   publicId?: string;
 
   @Column({ name: 'website', type: 'text' })

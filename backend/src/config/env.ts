@@ -1,49 +1,12 @@
+import { IConfig } from '@/interfaces/index.interfaces';
 import dotenv from 'dotenv';
 import path from 'path';
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Application configuration interface
-interface AppConfig {
-  port?: number;
-  nodeEnv?: string;
-}
-
-// Database configuration interface
-interface DBConfig {
-  host?: string,
-  port?: number,
-  username?: string,
-  password?: string,
-  dbName?: string
-}
-
-// JWT configuration interface
-interface JwtConfig {
-  accessTokenSecret?: string,
-  accessTokenExpire?: string,
-  refreshTokenSecret?: string,
-  refreshTokenExpire?: string
-}
-
-// Cloudinary configuration interface
-interface CloudinaryConfig {
-  name?: string;
-  key?: string;
-  secret?: string;
-}
-
-// Main config interface
-interface Config {
-  app: AppConfig,
-  database: DBConfig,
-  jwt: JwtConfig,
-  cloudinary: CloudinaryConfig
-}
-
 // Exported configuration object
-export const config: Config = {
+export const config: IConfig = {
   app: {
     port: parseInt(process.env.PORT || '3000'),
     nodeEnv: process.env.NODE_ENV

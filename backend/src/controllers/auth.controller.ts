@@ -1,31 +1,27 @@
-import { NextFunction, Request, Response } from 'express'
+import { NextFunction, Response } from 'express';
 import { AuthService } from "../services/auth.service";
-import { ResponseUtil } from '../utils/response.util';
-import { logger } from '../config/logger';
-import { validateDto } from '../utils/validation';
 import { RegisterDto } from '../dto/auth/register.dto';
 import { LoginDto } from '../dto/auth/login.dto';
-import { ICustomRequest } from '../interfaces/request.interface';
+import { ApiResponse } from '@/utils/response.util';
+import { HTTP_STATUS_CODE } from '@/constants';
+import { BadRequestException } from '@/exceptions/app-error';
+import { IRequest } from '@/interfaces/request.interface';
 
 export class AuthController {
-  private authService: AuthService;
 
-  constructor() {
-    this.authService = new AuthService();
-  }
+  constructor(
+    private readonly authService: AuthService
+  ) {}
 
   /**
    * Handle user registration
    * @route POST /auth/register
    */
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  register = async (req: IRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Validate and transform request body to RegisterDto
-      const data = await validateDto(RegisterDto, req.body);
       // Register new user
-      const user = await this.authService.register(data);
-      logger.info('New user: ', user);
-      ResponseUtil.success(res, user, 'Register successfully', 201);
+      const user = await this.authService.register(req.body as RegisterDto);
+      ApiResponse.success(res, user, `Register with email: ${user.email} successfully.`, HTTP_STATUS_CODE.CREATED_SUCCESSFUL);
     } catch (error) {
       next(error);
     }
@@ -35,13 +31,10 @@ export class AuthController {
    * Handle user login
    * @route POST /auth/login
    */
-  login = async (req: ICustomRequest, res: Response, next: NextFunction): Promise<void> => {
+  login = async (req: IRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Validate and transform request body to LoginDto
-      const data = await validateDto(LoginDto, req.body);
       // Authenticate user and generate tokens
-      const result = await this.authService.login(data);
-      logger.info('User login: ', result.user.id);
+      const result = await this.authService.login(req.body as LoginDto);
       // Set refresh token in httpOnly, secure cookie
       res.cookie('refreshToken', result.refreshToken, {
         httpOnly: false,
@@ -50,10 +43,10 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
       // Return only user and accessToken in response body
-      ResponseUtil.success(res, {
+      ApiResponse.success(res, {
         user: result.user,
         accessToken: result.accessToken
-      }, 'Login successfully.', 200);
+      }, 'Login successfully.', HTTP_STATUS_CODE.OK);
     } catch (error) {
       next(error);
     }
@@ -63,7 +56,7 @@ export class AuthController {
    * Handle user logout
    * @route POST /auth/logout
    */
-  logout = async (req: ICustomRequest, res: Response, next: NextFunction): Promise<void> => {
+  logout = async (req: IRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Get refresh token from cookie or Authorization header
       let refreshToken = '';
@@ -74,15 +67,12 @@ export class AuthController {
       } else if (req.body && req.body.refreshToken) {
         refreshToken = req.body.refreshToken;
       }
-      
       if (!refreshToken) {
-        logger.warn('Logout failed: No refresh token provided.');
-        ResponseUtil.error(res, 'No refresh token provided.', 400, 'Missing refresh token');
-        return;
+        throw new BadRequestException('Logout failed: No refresh token provided.');
       }
 
       // Revoke the refresh token
-      await this.authService.logout(refreshToken);
+      await this.authService.logout(req.user?.id!, refreshToken);
 
       // Clear the refresh token cookie
       res.clearCookie('refreshToken', {
@@ -91,8 +81,7 @@ export class AuthController {
         sameSite: 'strict'
       });
 
-      logger.info('Logout successfully.');
-      ResponseUtil.success(res, null, 'Logout successfully.', 200);
+      ApiResponse.success(res, null, 'Logout successfully.', HTTP_STATUS_CODE.OK);
     } catch (error) {
       next(error);
     }
@@ -104,13 +93,12 @@ export class AuthController {
    * Requires authentication middleware
    * Returns a new access token if the refresh token is valid
    */
-  resetToken = async(req: ICustomRequest, res: Response, next: NextFunction): Promise<void> => {
+  resetToken = async(req: IRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       let refreshToken = req.cookies.refreshToken;
-      const newAccesstoken = await this.authService.resetToken(refreshToken);
+      const newAccesstoken = await this.authService.resetToken(req.user?.id!, refreshToken);
 
-      logger.info('Reset access token successfully.', req.user?.id);
-      ResponseUtil.success(res, newAccesstoken, 'Reset access token successfully.', 200);
+      ApiResponse.success(res, newAccesstoken, 'Reset access token successfully.', HTTP_STATUS_CODE.OK);
     } catch (error) {
       next(error);
     }

@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from './users.entity';
 
 @Entity('tokens')
@@ -15,7 +15,7 @@ export class Token {
   @Column({ name: 'isRevoked', default: false })
   isRevoked?: boolean;
 
-  @Column({ name: 'createdAt', type: 'timestamp' })
+  @CreateDateColumn({ name: 'createdAt', type: 'timestamp' })
   createdAt?: Date;
 
   @Column({ name: 'expireAt', type: 'timestamp' })

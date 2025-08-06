@@ -1,11 +1,11 @@
 import { Response, NextFunction } from 'express';
-import { ICustomRequest } from "../interfaces/request.interface";
-import { UserService } from "../services/users.service";
-import { ResponseUtil } from '../utils/response.util';
-import { logger } from '../config/logger';
-import { validateDto } from '../utils/validation';
-import { UpdateUserDto } from '../dto/users/update-user.dto';
-import { ChangePasswordDto } from '../dto/users/change-password.dto';
+import { IUserService } from '@/interfaces/services/user.interface';
+import { ApiResponse } from '@/utils/response.util';
+import { HTTP_STATUS_CODE } from '@/constants';
+import { CreateUserDto } from '@/dto/users/create-user.dto';
+import { UpdateUserDto } from '@/dto/users/update-user.dto';
+import { ChangePasswordDto } from '@/dto/users/change-password.dto';
+import { IRequest } from '@/interfaces/request.interface';
 
 /**
  * Handles HTTP requests related to users.
@@ -13,22 +13,32 @@ import { ChangePasswordDto } from '../dto/users/change-password.dto';
  * and send back a formatted response.
  */
 export class UserController {
-  private userService : UserService;
-  constructor(){
-    this.userService = new UserService();
+  
+  constructor(
+    private userService: IUserService
+  ){}
+
+  /**
+   * Handle the POST request to create new User
+   */
+  create = async (req: IRequest,  res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const newUser = await this.userService.create(req.body as CreateUserDto);
+      ApiResponse.success(res, newUser, `Create new user with id ${newUser.id} successdully.`, HTTP_STATUS_CODE.CREATED_SUCCESSFUL);
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * Handles the GET request to retrieve the authenticated user's profile.
    */
-  getProfile = async (req: ICustomRequest, res: Response, next: NextFunction): Promise<void> => {
+  getProfile = async (req: IRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Call the service to get profile data using the user ID from the auth token.
       const profile = await this.userService.getProfile(req.user?.id!);
 
-      // Log success and send the response.
-      logger.info(`Get profile successfully for userId: ${profile.id}`);
-      ResponseUtil.success(res, profile, 'Get profile successfully.', 200);
+      ApiResponse.success(res, profile, 'Get profile successfully.', 200);
     } catch (error) {
       // Pass any caught errors to the global error handler.
       next(error);
@@ -38,17 +48,13 @@ export class UserController {
   /**
    * Handles the PUT/PATCH request to update a user's profile.
    */
-  update = async (req: ICustomRequest, res: Response, next: NextFunction): Promise<void> => {
+  update = async (req: IRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Validate the incoming request body against the DTO.
-      const data = await validateDto(UpdateUserDto, req.body);
-
       // Call the service to perform the update.
-      const updatedUser = await this.userService.update(req.user?.id!, data);
+      const updatedUser = await this.userService.update(req.user?.id!, req.body as UpdateUserDto);
 
       // Log success and send the response.
-      logger.info(`Updated user successfully for userId: ${req.user?.id!}`);
-      ResponseUtil.success(res, updatedUser, 'Updated user successfully.', 200) // Corrected typo "successfullu"
+      ApiResponse.success(res, updatedUser, `Update user with id ${updatedUser.id} successfully.`, 200) // Corrected typo "successfullu"
     } catch (error) {
       next(error);
     }
@@ -57,17 +63,13 @@ export class UserController {
   /**
    * Handles the POST request to change a user's password.
    */
-  changePassword = async (req: ICustomRequest, res: Response, next: NextFunction): Promise<void> => {
+  changePassword = async (req: IRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Validate the incoming password data against the DTO.
-      const data = await validateDto(ChangePasswordDto, req.body);
-      
       // Call the service to handle the password change logic.
-      const updatedUser = await this.userService.changePassword(req.user?.id!, data);
+      const message = await this.userService.changePassword(req.user?.id!, req.body as ChangePasswordDto);
       
       // Log success and send the response.
-      logger.info(`Change password successfully for userId: ${req.user?.id}`);
-      ResponseUtil.success(res, updatedUser, 'Change password successfully.', 200);
+      ApiResponse.success(res, null, message, 200);
     } catch (error) {
       next(error);
     }

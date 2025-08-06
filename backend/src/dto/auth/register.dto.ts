@@ -10,6 +10,10 @@ export class RegisterDto {
   email!: string;
 
   @IsNotEmpty()
+  @IsString()
+  phoneNumber?: string;
+
+  @IsNotEmpty()
   @MinLength(6, { message: 'Too short, enter at least 4 characters'})
   password!: string;
 

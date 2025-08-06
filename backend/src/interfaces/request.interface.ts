@@ -1,6 +1,7 @@
 import { Request } from 'express';
-import { User } from '../entities/users.entity';
+import { User } from "@/entities/users.entity";
 
-export interface ICustomRequest extends Request {
+export interface IRequest extends Request {
   user?: User;
+  file?: Express.Multer.File;
 }

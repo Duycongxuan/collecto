@@ -12,10 +12,6 @@ export class UpdateBrandDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
-  imageName?: string;
-
-  @IsOptional()
   @IsUrl()
   website?: string;
 

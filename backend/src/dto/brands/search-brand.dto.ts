@@ -1,8 +1,8 @@
 import { IsOptional, IsString } from "class-validator";
 import { PaginationDto } from "../pagination/pagination.dto";
 
-export class SearchBannerDto extends PaginationDto {
+export class SearchBrandDto extends PaginationDto{
   @IsOptional()
   @IsString()
-  title?: string;
+  name?: string;
 }

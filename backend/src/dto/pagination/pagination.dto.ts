@@ -14,8 +14,4 @@ export class PaginationDto {
   @Min(1)
   @Max(100)
   limit: number = 5;
-
-  get skip(): number{
-    return (this.page - 1) * this.limit;
-  }
 }

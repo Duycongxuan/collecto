@@ -3,72 +3,73 @@ import { UpdateBrandDto } from "@/dto/brands/update-brand.dto";
 import { PaginationDto } from "@/dto/pagination/pagination.dto";
 import { Brand } from "@/entities/brands.entity";
 import { BrandRepository } from "@/repositories/brands.repository";
-import { AppError } from "@/utils/app-error";
-import path from "path";
-import fs from 'fs';
-import cloudinary from "@/config/cloudinary";
-
-const TEMP_UPLOADS_DIR = path.join(__dirname, '../../uploads');
+import { UploadService } from "./upload.service";
+import { BadRequestException } from "@/exceptions/app-error";
+import { SearchBrandDto } from "@/dto/brands/search-brand.dto";
 
 export class BrandService {
-  private brandRepo: BrandRepository;
-  constructor() {
-    this.brandRepo = new BrandRepository();
+  constructor(
+    private readonly brandRepo: BrandRepository,
+    private readonly uploadService: UploadService
+  ) {}
+
+  findAllBrands = async (pagination?: PaginationDto): Promise<{items: Brand[], total: number}> => {
+    return await this.brandRepo.findAllBrands(pagination)
   }
 
-  findAll = async (pagination?: PaginationDto): Promise<{items: Brand[], total: number}> => {
-    return await this.brandRepo.findAll(pagination)
+  findByBrandId = async (id: number): Promise<Brand> => {
+    return await this.brandRepo.findByBrandId(id);
   }
 
-  findById = async (id: number): Promise<Brand> => {
-    return await this.brandRepo.findById(id);
+  search = async (name: SearchBrandDto): Promise<{ items: Brand[], total: number}> => {
+    return await this.brandRepo.search(name);
   }
 
-  create = async (data: CreateBrandDto): Promise<Brand> => {
-    const imgName = data.imageName!;
-    const imagePath = path.join(TEMP_UPLOADS_DIR, imgName);
-    
-    if(!fs.existsSync(imagePath)) {
-      throw new AppError('Not found image', 404);
+  create = async (data: CreateBrandDto, image: Express.Multer.File): Promise<Brand> => {
+    const { publicId, imageUrl } = await this.uploadService.uploadSingleImage(image, 'brands');
+    const newBrand = {
+      ...data,
+      publicId: publicId,
+      logoUrl: imageUrl
     }
-    try {
-      const brandExisting = await this.brandRepo.findByName(data.name!);
 
-      if(brandExisting) {
-        throw new AppError(`Brand ${data.name!}`, 400);
-      }
-
-      const logoUrl = await cloudinary.uploader.upload(imagePath, {
-        folder: 'collecto/brands',
-        transformation: [{ width: 1920, height: 1080, crop: 'limit', quality: 'auto' }]
-      });
-
-      const newBrand: Partial<Brand> = {
-        ...data,
-        logoUrl: logoUrl.secure_url,
-        publicId: logoUrl.public_id
-      }
-
-      return await this.brandRepo.create(newBrand);
-    } catch (error) {
-      throw new AppError('Failed to upload image or create banner', 400)
-    } finally {
-      fs.promises.unlink(imagePath);
-    }
+    return await this.brandRepo.create(newBrand);
   }
 
-  update = async (id: number, data: UpdateBrandDto): Promise<Brand> => {
-    const originalBrand = await this.brandRepo.findById(id);
+  update = async (brandId: number, data: UpdateBrandDto, image?: Express.Multer.File): Promise<Brand> => {
+    const originalBrand = await this.brandRepo.findByBrandId(brandId);
 
-    const isUnChanged = Object.keys(data).map(
-      (key) => data[key as keyof UpdateBrandDto] === originalBrand[key as keyof Brand]
+    console.log(`Original Brand: ${originalBrand}`);
+
+    let isUnChanged = Object.keys(data).every(
+      key => data[key as keyof UpdateBrandDto] === originalBrand[key as keyof Brand] 
     );
 
-    if(isUnChanged) {
-      throw new AppError('Provided data matches current information. No changes were made.', 400)
+    if(image) {
+      isUnChanged = false;
     }
 
-    return await this.brandRepo.update(id, data);
+    if(isUnChanged) {
+      throw new BadRequestException('Provided data matches current information. No changes were made.');
+    }
+
+    let updatedBrand: Partial<Brand> = { ...data };
+
+    if(image) {
+      await this.uploadService.deleteImage(originalBrand.publicId!);
+      const { publicId, imageUrl } = await this.uploadService.uploadSingleImage(image, 'brands');
+
+      updatedBrand.publicId = publicId;
+      updatedBrand.logoUrl = imageUrl;
+    }
+
+    console.log(updatedBrand);
+
+    return await this.brandRepo.update(brandId, updatedBrand);
+  }
+
+  isActiveBrand = async (brandId: number): Promise<Brand> => {
+    return await this.brandRepo.isActiveBrand(brandId);
   }
 
   delete = async (id: number): Promise<string> => {

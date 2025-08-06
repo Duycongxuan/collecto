@@ -1,32 +1,42 @@
 import { UserController } from "../controllers/user.controller";
 import { Router } from "express";
 import { AuthMiddleWare } from "../middlewares/auth.middleware";
+import { UserService } from "@/services/users.service";
+import { UserRepository } from "@/repositories/users.repository";
+import { validationMiddleware } from "@/validators/validations";
+import { Role } from "@/enums/enum";
+import { CreateUserDto } from "@/dto/users/create-user.dto";
+import { UpdateUserDto } from "@/dto/users/update-user.dto";
+import { ChangePasswordDto } from "@/dto/users/change-password.dto";
 
-// Initialize the router and required components
-const router = Router();
-const authMiddleWare = new AuthMiddleWare();
-const userController = new UserController();
+export class UserRoutes {
+  private router: Router;
+  private controller!: UserController;
+  private authMiddleware!: AuthMiddleWare;
+  
+  constructor() {
+    this.router = Router();
+    this.initializeDependencies();
+    this.configureRoutes();
+  }
 
-// --- PROTECTED ROUTES ---
-// Apply the 'authenticate' middleware to all routes defined in this file.
-// This ensures that a user must be logged in with a valid token to access any of these endpoints.
-router.use(authMiddleWare.authenticate);
+  private initializeDependencies(): void {
+    const repository = new UserRepository();
+    const service = new UserService(repository);
 
+    this.controller = new UserController(service);
+    this.authMiddleware = new AuthMiddleWare(repository);
+  }
 
-// --- ROUTE DEFINITIONS ---
+  private configureRoutes(): void {
+    this.router.use(this.authMiddleware.authenticate);
+    this.router.post('/',this.authMiddleware.authorize([Role.ADMIN]) ,validationMiddleware(CreateUserDto), this.controller.create);
+    this.router.get('/profile' ,this.controller.getProfile);
+    this.router.put('/', validationMiddleware(UpdateUserDto),this.controller.update);
+    this.router.patch('/change-password', validationMiddleware(ChangePasswordDto),this.controller.changePassword);
+  }
 
-// GET /api/v1/users/profile
-// Retrieves the profile of the currently authenticated user.
-router.get('/profile', userController.getProfile);
-
-// PUT /api/v1/users/update
-// Updates the information of the currently authenticated user.
-router.put('/update', userController.update);
-
-// PUT /api/v1/users/change-password
-// Changes the password for the currently authenticated user.
-router.put('/change-password', userController.changePassword);
-
-
-// Export the configured router as `userRoute`
-export { router as userRoute };
+  getRoutes(): Router {
+    return this.router;
+  }
+}

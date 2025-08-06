@@ -1,0 +1,1 @@
+export * from '@/interfaces/configs/config.interfaces';

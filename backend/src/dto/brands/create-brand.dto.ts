@@ -12,10 +12,6 @@ export class CreateBrandDto {
   description?: string;
 
   @IsNotEmpty()
-  @IsString()
-  imageName?: string;
-
-  @IsNotEmpty()
   @IsUrl()
   website?: string;
 

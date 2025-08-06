@@ -1,21 +1,18 @@
-import { AppError } from '../utils/app-error';
-import { logger } from '../config/logger';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { config } from '../config/env';
 import jwt from 'jsonwebtoken';
-import { ICustomRequest } from '../interfaces/request.interface';
 import { UserRepository } from '../repositories/users.repository';
-import { Role } from '../utils/enum';
-import { ResponseUtil } from '../utils/response.util';
+import { Role } from '../enums/enum';
+import { ForbiddenException, UnauthorizedException } from '@/exceptions/app-error';
+import { IRequest } from '@/interfaces/request.interface';
 
 /**
  * Contains middleware for handling Authentication and Authorization.
  */
 export class AuthMiddleWare {
-  private userRepository: UserRepository;
-  constructor() {
-    this.userRepository = new UserRepository();
-  }
+  constructor(
+    private userRepository: UserRepository
+  ) {}
 
   /**
    * Authenticates a user by validating their JWT access token from the Authorization header.
@@ -23,12 +20,12 @@ export class AuthMiddleWare {
    *
    * @throws {AppError} if the token is missing, malformed, or invalid.
    */
-  authenticate = async (req: ICustomRequest, res: Response, next: NextFunction): Promise<void> => {
+  authenticate = async (req: IRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       // 1. Get the Authorization header and check for 'Bearer' format.
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw new AppError('Access token is required for authentication.', 401);
+        throw new UnauthorizedException('Access token is required for authentication.');
       }
 
       // 2. Extract the token from the "Bearer <token>" string.
@@ -44,8 +41,6 @@ export class AuthMiddleWare {
       req.user = user!;
       next();
     } catch (error) {
-      // Common errors caught here include TokenExpiredError, JsonWebTokenError, etc.
-      logger.error('Authentication failed: ', error);
       next(error); // Pass the error to the global error handler.
     }
   }
@@ -58,28 +53,21 @@ export class AuthMiddleWare {
    * @param roles An array of roles that are permitted to access the route.
    */
   authorize = (roles: Role[]) => {
-    return (req: ICustomRequest, res: Response, next: NextFunction) => {
+    return (req: IRequest, res: Response, next: NextFunction) => {
      try {
       // Ensure the `authenticate` middleware has already run.
       if (!req.user) {
-        return ResponseUtil.error(res, 'User not authenticated.', 401);
+        throw new UnauthorizedException('User not authenticated.');
       }
 
       // Check if the user's role is included in the list of allowed roles.
       if (!roles.includes(req.user?.role as Role)) {
-        // Log unauthorized access attempts for security monitoring.
-        logger.warn('Authorization failed: Insufficient permissions', {
-          userId: req.user?.id!,
-          userRole: req.user?.role,
-          requiredRoles: roles
-        });
-        return ResponseUtil.error(res, 'You do not have permission to perform this action.', 403);
+        throw new ForbiddenException('You do not have permission to perform this action.');
       }
       
       // If the role is valid, allow the request to proceed.
       next();
      } catch (error) {
-      logger.error(`Authorization error: ${ error }`)
       next(error);
      }
     };

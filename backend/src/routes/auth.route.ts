@@ -1,38 +1,42 @@
-import { AuthMiddleWare } from '../middlewares/auth.middleware';
-import { AuthController } from '../controllers/auth.controller';
-import { Router } from 'express';
+import { AuthController } from "@/controllers/auth.controller";
+import { LoginDto } from "@/dto/auth/login.dto";
+import { RegisterDto } from "@/dto/auth/register.dto";
+import { AuthMiddleWare } from "@/middlewares/auth.middleware";
+import { TokenRepository } from "@/repositories/token.repository";
+import { UserRepository } from "@/repositories/users.repository";
+import { AuthService } from "@/services/auth.service";
+import { validationMiddleware } from "@/validators/validations";
+import { Router } from "express";
 
-// Initialize the router and required components
-const router = Router();
-const authController = new AuthController();
-const authMiddleware = new AuthMiddleWare();
+export class AuthRoutes {
+  private router: Router;
+  private authController!: AuthController;
+  private authMiddleware!: AuthMiddleWare;
+  constructor() {
+    this.router = Router();
+    this.initialize();
+    this.configureRoutes();
+  }
 
-// --- AUTHENTICATION ROUTES ---
-// These routes handle user registration, login, and session management.
+  initialize(): void {
+    const userRepository = new UserRepository();
+    const tokenRepository = new TokenRepository();
+    const authService = new AuthService(userRepository, tokenRepository);
+    
+    this.authController = new AuthController(authService);
+    this.authMiddleware = new AuthMiddleWare(userRepository);
+  }
 
+  configureRoutes(): void {
+    this.router.post('/register', validationMiddleware(RegisterDto) ,this.authController.register);
+    this.router.post('/login',validationMiddleware(LoginDto) ,this.authController.login);
+    this.router.post('/reset-token', this.authController.resetToken);
 
-// === PUBLIC ROUTES ===
+    this.router.use(this.authMiddleware.authenticate);
+    this.router.post('/logout', this.authController.logout);
+  }
 
-// POST /api/auth/register
-// Endpoint for creating a new user account.
-router.post('/register', authController.register);
-
-// POST /api/auth/login
-// Endpoint for authenticating a user and issuing tokens.
-router.post('/login', authController.login);
-
-
-// === PROTECTED ROUTES ===
-// These routes require a valid authentication token to be accessed.
-// The `authMiddleware.authenticate` is executed first to verify the user's identity.
-
-// POST /api/auth/logout
-// Logs out the authenticated user (e.g., by invalidating the token).
-router.post('/logout', authMiddleware.authenticate, authController.logout);
-
-// POST /api/auth/reset-token
-// Refreshes an expired access token, typically using a refresh token.
-router.post('/reset-token', authMiddleware.authenticate, authController.resetToken);
-
-// Export the configured router
-export { router as authRoute };
+  getRoutes(): Router {
+    return this.router;
+  }
+}
