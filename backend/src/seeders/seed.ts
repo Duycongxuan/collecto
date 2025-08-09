@@ -3,6 +3,8 @@ import { createDatabase, runSeeders } from "typeorm-extension"
 import UserSeeder from "./user.seeder"
 import CategorySeeder from "./category.seeder";
 import BrandSeeder from "./brand.seeder";
+import ProductSeeder from "./product.seeder";
+import { ProductImageSeeder } from "./productImage.seeder";
 
 (async () => {
   try {
@@ -18,7 +20,7 @@ import BrandSeeder from "./brand.seeder";
     }
     
     // Run the seeders
-    await runSeeders(AppDataSource, { seeds: [UserSeeder, CategorySeeder, BrandSeeder] });
+    await runSeeders(AppDataSource, { seeds: [UserSeeder, CategorySeeder, BrandSeeder, ProductSeeder, ProductImageSeeder] });
     
     console.log("Seeding completed successfully!");
     

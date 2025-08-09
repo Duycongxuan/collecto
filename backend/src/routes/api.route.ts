@@ -3,6 +3,7 @@ import { UserRoutes } from "./users.route";
 import { AuthRoutes } from "./auth.route";
 import { CategoryRoutes } from "./category.route";
 import { BrandRoutes } from "./brand.route";
+import { ProductRoutes } from "./product.route";
 
 export class ApiRoutes {
   private router: Router;
@@ -16,6 +17,7 @@ export class ApiRoutes {
     this.router.use('/auth', new AuthRoutes().getRoutes());
     this.router.use('/categories', new CategoryRoutes().getRoutes());
     this.router.use('/brands', new BrandRoutes().getRoutes());
+    this.router.use('/products', new ProductRoutes().getRoutes())
   }
   getRoutes(): Router {
     return this.router;

@@ -7,7 +7,7 @@ type Requestpath = 'body' | 'params' | 'query'
 
 export function validationMiddleware<T extends object>(dtoClass: new () => T, property: Requestpath = 'body') {
   return async (req: IRequest, res: Response, next: NextFunction) => {
-    const dtoInstance = plainToInstance(dtoClass, req[property]);
+    const dtoInstance = plainToInstance(dtoClass, req[property], { enableImplicitConversion: true });
     const errors = await validate(dtoInstance);
 
     if (errors.length > 0) {

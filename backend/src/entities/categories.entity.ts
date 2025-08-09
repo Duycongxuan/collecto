@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Product } from './products.entity';
 
 @Entity('categories')
 export class Category {
@@ -22,4 +23,7 @@ export class Category {
 
   @DeleteDateColumn({ name: 'deletedAt', type: 'timestamp', nullable: true})
   deletedAt?: Date;
+
+  @OneToMany(() => Product, product => product.category)
+  products?: Product[];
 }

@@ -1,6 +1,5 @@
 import cloudinary from "@/config/cloudinary";
 import { logger } from "@/config/logger";
-import { BadRequestException } from "@/exceptions/app-error";
 import { UploadApiResponse } from "cloudinary";
 
 export class UploadService {
